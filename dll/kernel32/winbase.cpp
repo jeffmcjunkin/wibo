@@ -62,7 +62,7 @@ struct MemorySnapshot {
 
 bool queryHostMemory(MemorySnapshot &out) {
 #if defined(__linux__)
-	struct sysinfo info {};
+	struct sysinfo info{};
 	if (sysinfo(&info) != 0) {
 		return false;
 	}
@@ -87,7 +87,7 @@ bool queryHostMemory(MemorySnapshot &out) {
 	if (host_page_size(mach_host_self(), &pageSize) != KERN_SUCCESS || pageSize == 0) {
 		return false;
 	}
-	vm_statistics64_data_t vmstat {};
+	vm_statistics64_data_t vmstat{};
 	mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
 	if (host_statistics64(mach_host_self(), HOST_VM_INFO64, reinterpret_cast<host_info64_t>(&vmstat), &count) !=
 		KERN_SUCCESS) {
@@ -98,7 +98,7 @@ bool queryHostMemory(MemorySnapshot &out) {
 	out.totalPhys = totalPhys;
 	out.availPhys = freePages * static_cast<uint64_t>(pageSize);
 
-	struct xsw_usage swap {};
+	struct xsw_usage swap{};
 	size_t swapSize = sizeof(swap);
 	if (sysctlbyname("vm.swapusage", &swap, &swapSize, nullptr, 0) == 0 && swapSize == sizeof(swap)) {
 		out.totalPageFile = swap.xsu_total;
@@ -555,6 +555,77 @@ UINT WINAPI SetHandleCount(UINT uNumber) {
 	DEBUG_LOG("SetHandleCount(%u)\n", uNumber);
 	(void)uNumber;
 	return 0x3FFE;
+}
+
+int WINAPI lstrcmpA(LPCSTR lpString1, LPCSTR lpString2) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("lstrcmpA(%s, %s)\n", lpString1 ? lpString1 : "(null)", lpString2 ? lpString2 : "(null)");
+	const char *str1 = lpString1 ? lpString1 : "";
+	const char *str2 = lpString2 ? lpString2 : "";
+	int result = std::strcmp(str1, str2);
+	return (result > 0) - (result < 0);
+}
+
+int WINAPI lstrcmpW(LPCWSTR lpString1, LPCWSTR lpString2) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("lstrcmpW(%p, %p)\n", lpString1, lpString2);
+	const uint16_t *str1 =
+		lpString1 ? reinterpret_cast<const uint16_t *>(lpString1) : reinterpret_cast<const uint16_t *>(u"");
+	const uint16_t *str2 =
+		lpString2 ? reinterpret_cast<const uint16_t *>(lpString2) : reinterpret_cast<const uint16_t *>(u"");
+	while (*str1 && *str1 == *str2) {
+		++str1;
+		++str2;
+	}
+	return (*str1 > *str2) - (*str1 < *str2);
+}
+
+int WINAPI lstrcmpiA(LPCSTR lpString1, LPCSTR lpString2) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("lstrcmpiA(%s, %s)\n", lpString1 ? lpString1 : "(null)", lpString2 ? lpString2 : "(null)");
+	const unsigned char *str1 = reinterpret_cast<const unsigned char *>(lpString1 ? lpString1 : "");
+	const unsigned char *str2 = reinterpret_cast<const unsigned char *>(lpString2 ? lpString2 : "");
+	while (*str1 && std::tolower(*str1) == std::tolower(*str2)) {
+		++str1;
+		++str2;
+	}
+	int c1 = std::tolower(*str1);
+	int c2 = std::tolower(*str2);
+	return (c1 > c2) - (c1 < c2);
+}
+
+int WINAPI lstrcmpiW(LPCWSTR lpString1, LPCWSTR lpString2) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("lstrcmpiW(%p, %p)\n", lpString1, lpString2);
+	const uint16_t *str1 =
+		lpString1 ? reinterpret_cast<const uint16_t *>(lpString1) : reinterpret_cast<const uint16_t *>(u"");
+	const uint16_t *str2 =
+		lpString2 ? reinterpret_cast<const uint16_t *>(lpString2) : reinterpret_cast<const uint16_t *>(u"");
+	while (*str1 && wcharToLower(*str1) == wcharToLower(*str2)) {
+		++str1;
+		++str2;
+	}
+	uint16_t c1 = wcharToLower(*str1);
+	uint16_t c2 = wcharToLower(*str2);
+	return (c1 > c2) - (c1 < c2);
+}
+
+int WINAPI lstrlenA(LPCSTR lpString) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("lstrlenA(%p)\n", lpString);
+	if (!lpString) {
+		return 0;
+	}
+	return static_cast<int>(std::strlen(lpString));
+}
+
+int WINAPI lstrlenW(LPCWSTR lpString) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("lstrlenW(%p)\n", lpString);
+	if (!lpString) {
+		return 0;
+	}
+	return static_cast<int>(wstrlen(reinterpret_cast<const uint16_t *>(lpString)));
 }
 
 DWORD WINAPI FormatMessageA(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPSTR lpBuffer,

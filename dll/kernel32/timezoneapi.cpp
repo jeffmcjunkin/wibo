@@ -221,6 +221,62 @@ BOOL WINAPI FileTimeToDosDateTime(const FILETIME *lpFileTime, LPWORD lpFatDate, 
 	return TRUE;
 }
 
+BOOL WINAPI SystemTimeToTzSpecificLocalTime(const TIME_ZONE_INFORMATION *lpTimeZoneInformation,
+											const SYSTEMTIME *lpUniversalTime, LPSYSTEMTIME lpLocalTime) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("SystemTimeToTzSpecificLocalTime(%p, %p, %p)\n", lpTimeZoneInformation, lpUniversalTime, lpLocalTime);
+	if (!lpUniversalTime || !lpLocalTime) {
+		setLastError(ERROR_INVALID_PARAMETER);
+		return FALSE;
+	}
+	int64_t seconds = 0;
+	uint32_t hundreds = 0;
+	if (!systemTimeToUnixParts(*lpUniversalTime, seconds, hundreds)) {
+		setLastError(ERROR_INVALID_PARAMETER);
+		return FALSE;
+	}
+	int64_t localSeconds = 0;
+	if (lpTimeZoneInformation) {
+		// Local time = UTC - (Bias + StandardBias); we don't model DST transition dates.
+		int64_t biasSeconds =
+			(static_cast<int64_t>(lpTimeZoneInformation->Bias) + lpTimeZoneInformation->StandardBias) * 60;
+		localSeconds = seconds - biasSeconds;
+	} else {
+		if (seconds > static_cast<int64_t>(std::numeric_limits<time_t>::max()) ||
+			seconds < static_cast<int64_t>(std::numeric_limits<time_t>::min())) {
+			setLastError(ERROR_INVALID_PARAMETER);
+			return FALSE;
+		}
+		time_t unixTime = static_cast<time_t>(seconds);
+		struct tm localTm{};
+#if defined(_POSIX_VERSION)
+		if (!localtime_r(&unixTime, &localTm)) {
+			setLastError(ERROR_INVALID_PARAMETER);
+			return FALSE;
+		}
+#else
+		struct tm *tmp = localtime(&unixTime);
+		if (!tmp) {
+			setLastError(ERROR_INVALID_PARAMETER);
+			return FALSE;
+		}
+		localTm = *tmp;
+#endif
+		int64_t localAsUtcSeconds = 0;
+		if (!tmToUnixSeconds(localTm, localAsUtcSeconds)) {
+			setLastError(ERROR_INVALID_PARAMETER);
+			return FALSE;
+		}
+		localSeconds = localAsUtcSeconds;
+	}
+	FILETIME localFileTime;
+	if (!unixPartsToFileTime(localSeconds, hundreds, localFileTime)) {
+		setLastError(ERROR_INVALID_PARAMETER);
+		return FALSE;
+	}
+	return FileTimeToSystemTime(&localFileTime, lpLocalTime);
+}
+
 DWORD WINAPI GetTimeZoneInformation(LPTIME_ZONE_INFORMATION lpTimeZoneInformation) {
 	HOST_CONTEXT_GUARD();
 	DEBUG_LOG("GetTimeZoneInformation(%p)\n", lpTimeZoneInformation);

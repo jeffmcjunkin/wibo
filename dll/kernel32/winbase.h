@@ -81,6 +81,12 @@ ATOM WINAPI AddAtomW(LPCWSTR lpString);
 UINT WINAPI GetAtomNameA(ATOM nAtom, LPSTR lpBuffer, int nSize);
 UINT WINAPI GetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize);
 UINT WINAPI SetHandleCount(UINT uNumber);
+int WINAPI lstrcmpA(LPCSTR lpString1, LPCSTR lpString2);
+int WINAPI lstrcmpW(LPCWSTR lpString1, LPCWSTR lpString2);
+int WINAPI lstrcmpiA(LPCSTR lpString1, LPCSTR lpString2);
+int WINAPI lstrcmpiW(LPCWSTR lpString1, LPCWSTR lpString2);
+int WINAPI lstrlenA(LPCSTR lpString);
+int WINAPI lstrlenW(LPCWSTR lpString);
 // DWORD WINAPI FormatMessageA(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPSTR lpBuffer,
 // 							DWORD nSize, va_list *Arguments);
 PVOID WINAPI EncodePointer(PVOID Ptr);

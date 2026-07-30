@@ -297,6 +297,26 @@ static void test_findclose_invalid_handle(void) {
 	TEST_CHECK_EQ(ERROR_INVALID_HANDLE, GetLastError());
 }
 
+static void test_find_first_file_ex_wide(void) {
+	WIN32_FIND_DATAW data;
+	HANDLE handle = FindFirstFileExW(L"dir\\data*.txt", FindExInfoStandard, &data, FindExSearchNameMatch, NULL, 0);
+	TEST_CHECK_MSG(handle != INVALID_HANDLE_VALUE, "FindFirstFileExW failed (err=%lu)", GetLastError());
+	unsigned matches = 0;
+	do {
+		TEST_CHECK_EQ(0, (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY));
+		TEST_CHECK(lstrlenW(data.cFileName) > 0);
+		matches++;
+	} while (FindNextFileW(handle, &data));
+	TEST_CHECK_EQ(ERROR_NO_MORE_FILES, GetLastError());
+	TEST_CHECK(FindClose(handle));
+	TEST_CHECK_EQ(3, matches);
+
+	SetLastError(0xDEADBEEF);
+	handle = FindFirstFileExW(L"dir\\missing*.txt", FindExInfoStandard, &data, FindExSearchNameMatch, NULL, 0);
+	TEST_CHECK(handle == INVALID_HANDLE_VALUE);
+	TEST_CHECK_EQ(ERROR_FILE_NOT_FOUND, GetLastError());
+}
+
 int main(void) {
 	setup_fixture();
 
@@ -311,6 +331,7 @@ int main(void) {
 	test_wildcard_in_directory_segment();
 	test_directory_iteration_includes_special_entries();
 	test_findclose_invalid_handle();
+	test_find_first_file_ex_wide();
 
 	cleanup_fixture();
 	return EXIT_SUCCESS;

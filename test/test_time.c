@@ -182,6 +182,47 @@ static void test_local_filetime_conversions(void) {
     TEST_CHECK_EQ(utc_time.wSecond, utc_from_roundtrip.wSecond);
 }
 
+static void test_system_time_to_tz_specific_local_time(void) {
+    SYSTEMTIME utc_time = {
+        .wYear = 2021,
+        .wMonth = 6,
+        .wDay = 15,
+        .wHour = 18,
+        .wMinute = 30,
+        .wSecond = 15,
+        .wMilliseconds = 0
+    };
+
+    /* Explicit zone with no DST rules: local = UTC - Bias */
+    TIME_ZONE_INFORMATION tzi = {0};
+    tzi.Bias = -60; /* UTC+1 */
+    SYSTEMTIME local_st = {0};
+    TEST_CHECK(SystemTimeToTzSpecificLocalTime(&tzi, &utc_time, &local_st));
+    TEST_CHECK_EQ(utc_time.wHour + 1, local_st.wHour);
+    TEST_CHECK_EQ(utc_time.wMinute, local_st.wMinute);
+    TEST_CHECK_EQ(utc_time.wSecond, local_st.wSecond);
+    TEST_CHECK_EQ(utc_time.wDay, local_st.wDay);
+
+    /* NULL zone: should agree with FileTimeToLocalFileTime for the same instant */
+    FILETIME utc_ft;
+    TEST_CHECK(SystemTimeToFileTime(&utc_time, &utc_ft));
+    FILETIME local_ft;
+    TEST_CHECK(FileTimeToLocalFileTime(&utc_ft, &local_ft));
+    SYSTEMTIME expected_local = {0};
+    TEST_CHECK(FileTimeToSystemTime(&local_ft, &expected_local));
+    SYSTEMTIME default_local = {0};
+    TEST_CHECK(SystemTimeToTzSpecificLocalTime(NULL, &utc_time, &default_local));
+    TEST_CHECK_EQ(expected_local.wYear, default_local.wYear);
+    TEST_CHECK_EQ(expected_local.wMonth, default_local.wMonth);
+    TEST_CHECK_EQ(expected_local.wDay, default_local.wDay);
+    TEST_CHECK_EQ(expected_local.wHour, default_local.wHour);
+    TEST_CHECK_EQ(expected_local.wMinute, default_local.wMinute);
+    TEST_CHECK_EQ(expected_local.wSecond, default_local.wSecond);
+
+    TEST_CHECK(!SystemTimeToTzSpecificLocalTime(NULL, NULL, &local_st));
+    TEST_CHECK(!SystemTimeToTzSpecificLocalTime(NULL, &utc_time, NULL));
+}
+
 int main(void) {
     test_systemtime_roundtrip();
     test_filetime_known_timestamp();
@@ -189,6 +230,7 @@ int main(void) {
     test_gettickcount_progresses();
     test_setfiletime_roundtrip();
     test_local_filetime_conversions();
+    test_system_time_to_tz_specific_local_time();
     return 0;
 }
 

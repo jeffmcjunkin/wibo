@@ -1895,6 +1895,49 @@ HANDLE WINAPI FindFirstFileExA(LPCSTR lpFileName, FINDEX_INFO_LEVELS fInfoLevelI
 	return findFirstFileCommon(std::string(lpFileName), findData);
 }
 
+HANDLE WINAPI FindFirstFileExW(LPCWSTR lpFileName, FINDEX_INFO_LEVELS fInfoLevelId, LPVOID lpFindFileData,
+							   FINDEX_SEARCH_OPS fSearchOp, LPVOID lpSearchFilter, DWORD dwAdditionalFlags) {
+	HOST_CONTEXT_GUARD();
+	DEBUG_LOG("FindFirstFileExW(%p, %d, %p, %d, %p, 0x%x)", lpFileName, fInfoLevelId, lpFindFileData, fSearchOp,
+			  lpSearchFilter, dwAdditionalFlags);
+	if (!lpFindFileData) {
+		DEBUG_LOG(" -> ERROR_INVALID_PARAMETER\n");
+		setLastError(ERROR_INVALID_PARAMETER);
+		return INVALID_HANDLE_VALUE;
+	}
+	if (!lpFileName) {
+		DEBUG_LOG(" -> ERROR_PATH_NOT_FOUND\n");
+		setLastError(ERROR_PATH_NOT_FOUND);
+		return INVALID_HANDLE_VALUE;
+	}
+	if (fInfoLevelId != FindExInfoStandard) {
+		DEBUG_LOG(" -> ERROR_INVALID_PARAMETER\n");
+		setLastError(ERROR_INVALID_PARAMETER);
+		return INVALID_HANDLE_VALUE;
+	}
+	if (fSearchOp != FindExSearchNameMatch) {
+		DEBUG_LOG(" -> ERROR_INVALID_PARAMETER\n");
+		setLastError(ERROR_INVALID_PARAMETER);
+		return INVALID_HANDLE_VALUE;
+	}
+	if (lpSearchFilter) {
+		DEBUG_LOG(" -> ERROR_INVALID_PARAMETER\n");
+		setLastError(ERROR_INVALID_PARAMETER);
+		return INVALID_HANDLE_VALUE;
+	}
+	if (dwAdditionalFlags != 0) {
+		DEBUG_LOG(" -> ERROR_INVALID_PARAMETER\n");
+		setLastError(ERROR_INVALID_PARAMETER);
+		return INVALID_HANDLE_VALUE;
+	}
+
+	std::string narrowName = wideStringToString(lpFileName);
+	auto *findData = static_cast<LPWIN32_FIND_DATAW>(lpFindFileData);
+	HANDLE handle = findFirstFileCommon(narrowName, findData);
+	DEBUG_LOG(" -> %p\n", handle);
+	return handle;
+}
+
 BOOL WINAPI FindNextFileA(HANDLE hFindFile, LPWIN32_FIND_DATAA lpFindFileData) {
 	HOST_CONTEXT_GUARD();
 	DEBUG_LOG("FindNextFileA(%p, %p)\n", hFindFile, lpFindFileData);
