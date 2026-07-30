@@ -37,8 +37,8 @@ static void test_basic_version(RtlGetVersionFn rtl_get_version) {
     TEST_CHECK_EQ((NTSTATUS)STATUS_SUCCESS, status);
     TEST_CHECK_EQ(sizeof(info), info.dwOSVersionInfoSize);
     TEST_CHECK_EQ(6u, info.dwMajorVersion);
-    TEST_CHECK_EQ(2u, info.dwMinorVersion);
-    TEST_CHECK_EQ(0u, info.dwBuildNumber);
+    TEST_CHECK_EQ(1u, info.dwMinorVersion);
+    TEST_CHECK_EQ(7601u, info.dwBuildNumber);
     TEST_CHECK_EQ(2u, info.dwPlatformId);
     TEST_CHECK_EQ(0, info.szCSDVersion[0]);
 }
@@ -52,8 +52,8 @@ static void test_extended_version(RtlGetVersionFn rtl_get_version) {
     TEST_CHECK_EQ((NTSTATUS)STATUS_SUCCESS, status);
     TEST_CHECK_EQ(sizeof(info), info.dwOSVersionInfoSize);
     TEST_CHECK_EQ(6u, info.dwMajorVersion);
-    TEST_CHECK_EQ(2u, info.dwMinorVersion);
-    TEST_CHECK_EQ(0u, info.dwBuildNumber);
+    TEST_CHECK_EQ(1u, info.dwMinorVersion);
+    TEST_CHECK_EQ(7601u, info.dwBuildNumber);
     TEST_CHECK_EQ(2u, info.dwPlatformId);
     TEST_CHECK_EQ(1u, info.wProductType);
     TEST_CHECK_EQ(0u, info.wServicePackMajor);
